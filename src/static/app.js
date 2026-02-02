@@ -4,6 +4,38 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  // Function to handle deleting a participant
+  async function handleDeleteParticipant(event) {
+    const button = event.target;
+    const activity = button.dataset.activity;
+    const email = button.dataset.email;
+
+    if (!confirm(`Are you sure you want to unregister ${email} from ${activity}?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Refresh activities list after successful deletion
+        fetchActivities();
+      } else {
+        alert(result.detail || "Failed to unregister participant");
+      }
+    } catch (error) {
+      alert("Failed to unregister participant. Please try again.");
+      console.error("Error unregistering participant:", error);
+    }
+  }
+
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
@@ -29,7 +61,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (details.participants.length > 0) {
           participantsHTML += '<ul>';
           details.participants.forEach(participant => {
-            participantsHTML += `<li>${participant}</li>`;
+            participantsHTML += `
+              <li>
+                <span class="participant-email">${participant}</span>
+                <button class="delete-btn" data-activity="${name}" data-email="${participant}" title="Unregister ${participant}">×</button>
+              </li>
+            `;
           });
           participantsHTML += '</ul>';
         } else {
@@ -53,6 +90,11 @@ document.addEventListener("DOMContentLoaded", () => {
         option.value = name;
         option.textContent = name;
         activitySelect.appendChild(option);
+      });
+
+      // Add event listeners to all delete buttons
+      document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', handleDeleteParticipant);
       });
     } catch (error) {
       activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
